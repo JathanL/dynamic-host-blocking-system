@@ -1,0 +1,16 @@
+sh echo "===== TC1: Normal users only ====="
+sh echo "EXPECTED: nobody is blocked and every request succeeds"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h2 python3 client.py 10.0.0.1 5 1 > h2.out &
+h4 python3 client.py 10.0.0.1 5 1 > h4.out
+sh sleep 7
+sh echo "--- h2 requests ---"
+sh cat h2.out
+sh echo "--- h4 requests ---"
+sh cat h4.out
+sh echo "--- controller log ---"
+sh grep -e host -e BLOCKED tc1.log
+sh echo "--- switch flow table ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: no BLOCKED line and no priority=100 drop rule above means PASS"

@@ -1,0 +1,14 @@
+sh echo "===== TC7 (real life): Distributed attack - many hosts, each below the limit ====="
+sh echo "EXPECTED (known limitation): nobody is blocked, because no single host crosses 15"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h2 python3 client.py 10.0.0.1 40 0.8 > h2.out &
+h3 python3 client.py 10.0.0.1 40 0.8 > h3.out &
+h4 python3 client.py 10.0.0.1 40 0.8 > h4.out &
+sh echo "--- 3 hosts x about 1.2 requests per second for 35 seconds, please wait ---"
+sh sleep 35
+sh echo "--- controller log (each host stays below 15) ---"
+sh grep -e host -e BLOCKED tc7.log
+sh echo "--- switch flow table ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: no BLOCKED line although the server receives about 36 connections per 10 s. Fix: add a total-connections limit for the server"

@@ -1,0 +1,23 @@
+sh echo "===== TC6 (real life): Attacker changes its IP address after being blocked ====="
+sh echo "EXPECTED: h3 is blocked by IP and by MAC address, so a NEW IP does not help"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h3 python3 client.py 10.0.0.1 20 0.05 > h3.out
+sh sleep 8
+sh echo "--- h3 (10.0.0.3) is blocked ---"
+h3 python3 client.py 10.0.0.1 2 1
+sh grep -e BLOCKED tc6.log
+sh echo "--- h3 changes its IP address to 10.0.0.33 (same network card, same MAC) ---"
+h3 ip addr flush dev h3-eth0
+h3 ip addr add 10.0.0.33/8 dev h3-eth0
+h3 ip link show h3-eth0
+sh echo "--- h3 tries again with the NEW IP (must still fail) ---"
+h3 ping -c 3 10.0.0.1
+h3 python3 client.py 10.0.0.1 3 1
+sh echo "--- normal host h2 still works ---"
+h2 ping -c 2 10.0.0.1
+sh echo "--- controller log ---"
+sh grep -e BLOCKED tc6.log
+sh echo "--- switch flow table (one drop rule for the IP and one for the MAC) ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: new IP still fails and the flow table shows a drop rule for the MAC (dl_src) means PASS"

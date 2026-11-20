@@ -1,0 +1,18 @@
+sh echo "===== TC2: One attacker among normal users ====="
+sh echo "EXPECTED: only h3 (10.0.0.3) is blocked, h2 keeps working"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h2 python3 client.py 10.0.0.1 10 1 > h2.out &
+h3 python3 client.py 10.0.0.1 20 0.05 > h3.out
+sh echo "--- attack sent, waiting for the controller check ---"
+sh sleep 8
+sh echo "--- h3 tries again after the block ---"
+h3 python3 client.py 10.0.0.1 3 1
+h3 ping -c 3 10.0.0.1
+sh echo "--- normal host h2 (must be all ok) ---"
+sh cat h2.out
+sh echo "--- controller log ---"
+sh grep -e host -e BLOCKED tc2.log
+sh echo "--- switch flow table ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: BLOCKED 10.0.0.3 only and one drop rule for 10.0.0.3 means PASS"

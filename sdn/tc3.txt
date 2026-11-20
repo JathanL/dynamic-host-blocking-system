@@ -1,0 +1,22 @@
+sh echo "===== TC3: Multiple attackers (6-host network) ====="
+sh echo "EXPECTED: h3, h4 and h5 are all blocked, h2 and h6 keep working"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h2 python3 client.py 10.0.0.1 10 1 > h2.out &
+h6 python3 client.py 10.0.0.1 10 1 > h6.out &
+h3 python3 client.py 10.0.0.1 20 0.05 > h3.out &
+h4 python3 client.py 10.0.0.1 20 0.1 > h4.out &
+h5 python3 client.py 10.0.0.1 25 0.02 > h5.out
+sh echo "--- three attackers sent, waiting for the controller check ---"
+sh sleep 8
+sh echo "--- ping from each attacker (should fail) ---"
+h3 ping -c 2 10.0.0.1
+h4 ping -c 2 10.0.0.1
+h5 ping -c 2 10.0.0.1
+sh echo "--- ping from normal host h2 (should work) ---"
+h2 ping -c 2 10.0.0.1
+sh echo "--- controller log ---"
+sh grep -e BLOCKED tc3.log
+sh echo "--- switch flow table ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: three BLOCKED lines, three drop rules (10.0.0.3, .4, .5), h2 and h6 untouched means PASS"

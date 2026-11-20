@@ -1,0 +1,16 @@
+sh echo "===== TC5: Boundary - exactly 15 vs 16 connections (limit = 15) ====="
+sh echo "EXPECTED: h2 (15 connections) is allowed, h3 (16 connections) is blocked"
+h1 python3 server.py > server.log 2>&1 &
+sh sleep 1
+h2 python3 client.py 10.0.0.1 15 0.1 > h2.out
+h3 python3 client.py 10.0.0.1 16 0.1 > h3.out
+sh sleep 9
+sh echo "--- ping from h2 (15 connections, should work) ---"
+h2 ping -c 2 10.0.0.1
+sh echo "--- ping from h3 (16 connections, should fail) ---"
+h3 ping -c 2 10.0.0.1
+sh echo "--- controller log ---"
+sh grep -e host -e BLOCKED tc5.log
+sh echo "--- switch flow table ---"
+sh ovs-ofctl -O OpenFlow13 dump-flows s1
+sh echo "RESULT: h2 not blocked, BLOCKED 10.0.0.3 means PASS"
